@@ -71,10 +71,10 @@
 
   \footnotesize Action
 	\begin{minted}[fontsize=\tiny]{javascript}
-  {
-    type: 'SET_VISIBILITY_FILTER',
-    filter: 'SHOW_FINISHED'
-  }
+{
+  type: 'SET_VISIBILITY_FILTER',
+  filter: 'SHOW_FINISHED'
+}
   \end{minted}
 
   \end{multicols}
@@ -83,9 +83,9 @@
 \begin{frame}[fragile]
   \frametitle{Reducers}
 
-\small The reducer is a pure function \textit{(previousState, action) => newState}
+  \small The reducer is a pure function \textit{(previousState, action) => newState}
 
-\begin{minted}[fontsize=\tiny]{javascript}
+  \begin{minted}[fontsize=\tiny]{javascript}
 function todoApp (state = initialState, action) {  // initializes the state
   switch (action.type) {  // looks the type of the action
     case SET_VISIBILITY_FILTER:
@@ -106,18 +106,25 @@ function todoApp (state = initialState, action) {  // initializes the state
       return state
   }
 }
-\end{minted}
-
+  \end{minted}
 \end{frame}
 
-
-
 \begin{frame}[fragile]
-\frametitle{Reducers composition}
+  \frametitle{Reducers composition}
+  \begin{multicols}{2}
+    \scriptsize One reducer for each part of the tree
+    \begin{minted}[fontsize=\tiny]{javascript}
+function visibilityFilter(
+    state = SHOW_ALL, action
+  ) {
+  switch (action.type) {
+    case SET_VISIBILITY_FILTER:
+      return action.filter
+    default:
+      return state
+  }
+}
 
-\begin{multicols}{2}
-\scriptsize One reducer for each part of the tree
-\begin{minted}[fontsize=\tiny]{javascript}
 function todos (state = [], action) {
   switch (action.type) {
     case ADD_TODO:
@@ -132,23 +139,23 @@ function todos (state = [], action) {
       return state
   }
 }
+    \end{minted}
 
-function visibilityFilter(
-    state = SHOW_ALL, action
-  ) {
-  switch (action.type) {
-    case SET_VISIBILITY_FILTER:
-      return action.filter
-    default:
-      return state
-  }
-}
-\end{minted}
+  \columnbreak
 
-\columnbreak
+    \scriptsize State 
+    \begin{minted}[fontsize=\ssmall]{javascript}
+{ visibilityFilter: 'SHOW_ALL',
+  todos: [
+    { text: 'Consider using Redux',
+      completed: true, },
+    { text: 'Keep all state in a single tree',
+      completed: false } ] }
 
-\scriptsize All the reducers are combined in one
-\begin{minted}[fontsize=\tiny]{javascript}
+    \end{minted}
+
+    \scriptsize All the reducers are combined in one
+    \begin{minted}[fontsize=\tiny]{javascript}
 function todoApp (state = {}, action) {
   return {
     visibilityFilter: visibilityFilter(
@@ -165,8 +172,143 @@ const todoApp = combineReducers({
   visibilityFilter,
   todos
 })
+    \end{minted}
 
-\end{minted}
+  \end{multicols}
+\end{frame}
 
-\end{multicols}
+\begin{frame}[fragile]
+  \frametitle{Store API}
+  \begin{multicols}{2}
+    \footnotesize Implementation
+    \begin{minted}[fontsize=\tiny]{javascript}
+const createStore = reducer => {
+  let state
+  let listener = []
+
+  const getState = () => state
+
+  const dispatch = action => {
+    state = reducer(state, action)
+    listeners.forEach(
+      listener => listener()
+    )
+  }
+
+  const subscribe = listener => {
+    listeners.push(listener)
+    return () => {
+      listeners = listeners.filter(
+        l => l !== listener
+      )
+    }
+  }
+}
+    \end{minted}
+
+  \columnbreak
+
+    \footnotesize Usage
+    \begin{minted}[fontsize=\tiny]{javascript}
+import { createStore } from 'redux'
+import todoApp from './reducers'
+let store = createStore(todoApp)
+
+// Every time the state changes, log it
+// Note that subscribe() returns a function 
+// for unregistering the listener
+let unsubscribe = store.subscribe(() =>
+  console.log(store.getState())
+)
+
+// Dispatch some actions
+store.dispatch(addTodo('Learn about actions'))
+store.dispatch(addTodo('Learn about reducers'))
+store.dispatch(addTodo('Learn about store'))
+store.dispatch(
+  setVisibilityFilter(
+    VisibilityFilters.SHOW_COMPLETED
+  )
+)
+
+// Stop listening to state updates
+unsubscribe()
+    \end{minted}
+  \end{multicols}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{React integration}
+  \begin{minted}[fontsize=\tiny]{javascript}
+import { setFilter } from 'actions'
+
+export default class ChangeFilter extends Component {  // Usage <ChangeFilter store=store />
+  componentDidMount () {
+    this.unsubscribe =   // The return value of subscribe is an unsubscribe method
+      this.props.store.subscribe(  // Subscribe to store changes 
+        () => this.forceUpdate())  // Update the component when something changes
+  }
+
+  componentWillUnmount () {
+    this.unsubscribe()  // Unsubscribe from store change notifications
+  }
+
+  render () {
+    const store = this.props.store
+    const state = store.getState()  // Read the state of the store
+    return ( 
+      <div>
+        Current filter {state.visibilityFilter}  // Read a value from the store
+        <Button onClick={() => store.dispatch(  // Dispatch and action to update the store
+          setFilter('SHOW_ALL')  // Action creator
+        )} >
+          SHOW ALL
+        </Button>
+      </div> 
+    ) 
+  } 
+}
+  \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{React integration}
+  \begin{multicols*}{2}
+  \footnotesize With \textbf{react-redux}
+  \begin{minted}[fontsize=\tiny]{javascript}
+import { setFilter } from 'actions'
+import { connect } from 'react-redux'
+
+const ChangeFilter = props => {
+  return (<div>
+    Current filter {prop.visibilityFilter}
+    <Button onClick={() => props.dispatchSetFilter('SHOW_ALL')} >
+      SHOW ALL
+    </Button>
+  </div> ) } }
+}
+
+function mapStateToProp (state, props) {
+  return {  // This will be passed as props
+    visibilityFilter = state.visibilityFilter  
+  }
+}
+
+function mapStateToDispatch (dispatch, props) {
+  return {  // This will be passed as props
+    dispatchSetFilter: filter => dispatch(setFilter(filter))
+  }
+}
+
+export default connect (mapStateToProps, mapDispatchToProps)(ChangeFilter)
+  \end{minted}
+  \columnbreak
+  \begin{minted}[fontsize=\ssmall]{javascript}
+// main.jsx where App includes our ChangeFilter
+render( 
+  <Provider store={store}> <App /> </Provider>,
+  document.getElementById('root')
+)
+  \end{minted}
+  \end{multicols*}
 \end{frame}
