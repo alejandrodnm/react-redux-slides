@@ -198,13 +198,13 @@
 
   \small Invoked once after the initial render. Real DOM ref exist in this stage.  Use for integration with other frameworks, timeouts, ajax call, etc.
 
-  \textbf{componentWillReceiveProps(oldProps)}
+  \textbf{componentWillReceiveProps(newProps)}
 
   \small Invoked when a component is receiving new props. Used to update state on prop changes.
   \begin{minted}[fontsize=\tiny]{javascript}
-  componentWillRecieveProps (oldProps) {
+  componentWillRecieveProps (newProps) {
     this.setState({  // Does not trigger additional renders
-      didIncrease: oldProps.value > this.props.value
+      didIncrease: newProps.value > this.props.value
     })
   }
   \end{minted}
