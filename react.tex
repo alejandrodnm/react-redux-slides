@@ -93,7 +93,7 @@
   class App extends React.Component {
     render () {
       return (
-        <div> Hello {this.props.name} </div>
+        <div prop1={this.props.prop1}> Hello {this.props.name} ! </div>
       )
     }
   }
@@ -105,10 +105,11 @@
   class App extends React.Component {
     render () {
       return React.createElement(
-        "div",
-        null,
-        "Hello ",
-        this.props.name
+        "div",  // type
+        { prop1: this.props.prop1 },  // props
+        "Hello ",  // childrens ...
+        this.props.name,
+        " ! "  
       )
     }
   }
@@ -248,9 +249,9 @@
     }
 
     tick () {
-      this.setState((prevState) => ({
-        secondsElapsed: prevState.secondsElapsed + 1
-      }))
+      this.setState({
+        secondsElapsed: this.state.secondsElapsed + 1
+      })
     }
 
     componentDidMount () {
